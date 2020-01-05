@@ -3,9 +3,13 @@
 
 enum errorCorrectionLevel {L, M, Q, H};
 enum encodingMode {numeric, alphanumeric, byte, kanji};
+enum inputSource {standardin, commandLineArg, file};
 
-typedef struct Settings {
+struct Settings {
   enum errorCorrectionLevel ecl;
   enum encodingMode em;
+  enum inputSource is;
   int version;
 };
+
+#endif
