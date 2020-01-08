@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "settings.h"
 #include "setup.h"
 
@@ -25,103 +26,48 @@ int parse_clargs(int argc, const char *argv[], struct Settings *settings,
   settings->is = standardin;
   settings->version = 0;
 
-  // Base case: no arguments whatsoever
-  if (argc==1) {
-    return 0;
-  }
-
-  // Read command line arguments
-  int i, arglen;
-  for (i=1; i<argc; i++) {
-    arglen = strlen(argv[i]);
-    if (arglen==0) continue; // ignore 0 length argument
-    else if (arglen>2) {
-      if (argv[i][0] == '-') {
-        switch (argv[i][1]) {
-          case 'c':
-            if(!single_arg_parse(i, 2, argv, 'c', settings))
-              goto READ_INPUT;
-
-          case 'e':
-            if(!single_arg_parse(i, 2, argv, 'e', settings))
-              goto READ_INPUT;
-
-          case 'i':
-            if(!single_arg_parse(i, 2, argv, 'i', settings))
-              goto READ_INPUT;
-
-          case '-': // -- argument
-            if (strcmp(argv[i], "--correction_level=") >= 0)
-              if(!single_arg_parse(i, strlen("--correction_level="), argv, 'c', settings))
-                goto READ_INPUT;
-            else {
-              if (strcmp(argv[i], "--encoding_mode=") >= 0)
-                if(!single_arg_parse(i, strlen("--encoding_mode="), argv, 'e', settings))
-                  goto READ_INPUT;
-            }
-            else {
-              if (strcmp(argv[i], "--input_source=") >= 0)
-                if(single_arg_parse(i, strlen("--input_source="), argv, 'i', settings))
-                  goto READ_INPUT;
-            }
-        }
-      } else
-        goto READ_INPUT;
+  int opt;
+  while ((opt = getopt(argc, argv, ":c:e:i:")) != -1) {
+    switch(opt) {
+      // error correction level
+      case 'c':
+        if (!strcmp(optarg, "L")) {
+          settings->ecl = L;
+        } else if (!strcmp(optarg, "M")) {
+          settings->ecl = M;
+        } else if (!strcmp(optarg, "Q")) {
+          settings->ecl = Q;
+        } else if (!strcmp(optarg, "H")) {
+          settings->ecl = H;
+        } else {
+          printf("Error correction level must be L,M,Q, or H\n");
+          return 1;
+        } break;
+      case 'e':
+        if (!strcmp(optarg, "numeric")) {
+          settings->em = numeric;
+        } else if (!strcmp(optarg, "alphanumeric")) {
+          settings->em = alphanumeric;
+        } else if (!strcmp(optarg, "byte")) {
+          settings->em = byte;
+        } else if (!strcmp(optarg, "kanji")) {
+          settings->em = kanji;
+        } else {
+          printf("Encoding mode must be ");
+          printf("numeric, alphanumeric, ");
+          printf("byte, or kanji\n");
+          return 1;
+        } break;
+      case 'i':
+        break; // skip for now
+      case ':':
+        printf("-%c requires an argument\n", optopt);
+        return 1;
+      case '?':
+        printf("Unknown option: -%c", optopt);
+        return 1;
     }
   }
-
-READ_INPUT: ;
-  int offset = 0;
-  for (; i<argc; i++) {
-    strcpy(input+offset, argv[i]);
-    offset += strlen(argv[i]);
-    input[offset] = ' ';
-  }
-  input[offset] = '\0';
   return 0;
 }
 
-int single_arg_parse(int argnum, int startIndex, const char *argv[], char arg, struct Settings *settings) {
-  // parses &argv[argnum][startIndex] for argument arg into settings
-  // arg must be 'c', 'e', or 'i'
-  // Returns 0 if successful and 1 otherwise
-  switch (arg) {
-    case 'c':
-      if (!strcmp(&argv[argnum][startIndex], "L"))
-        settings->ecl = L;
-      else if (!strcmp(&argv[argnum][startIndex], "M"))
-        settings->ecl = M;
-      else if (!strcmp(&argv[argnum][startIndex], "M"))
-        settings->ecl = M;
-      else if (!strcmp(&argv[argnum][startIndex], "M"))
-        settings->ecl = M;
-      else
-        return 1;
-
-    case 'e':
-      if (!strcmp(&argv[argnum][startIndex], "numeric"))
-        settings->em = numeric;
-      else if (!strcmp(&argv[argnum][startIndex], "alphanumeric"))
-        settings->em = alphanumeric;
-      else if (!strcmp(&argv[argnum][startIndex], "byte"))
-        settings->em = byte;
-      else if (!strcmp(&argv[argnum][startIndex], "kanji"))
-        settings->em = kanji;
-      else
-        return 1;
-
-    case 'i':
-      if (!strcmp(&argv[argnum][startIndex], "standardin"))
-        settings->is = numeric;
-      else if (!strcmp(&argv[argnum][startIndex], "commandLineArg"))
-        settings->is = commandLineArg;
-      else if (!strcmp(&argv[argnum][startIndex], "file"))
-        settings->is = file;
-      else
-        return 1;
-
-    default:
-      return 1;
-  }
-  return 0;
-}
