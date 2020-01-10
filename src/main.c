@@ -11,6 +11,11 @@ int main(int argc, const char* argv[]) {
 
   // Step 1: parse settings and get input to encode
   parse_clargs(argc, argv, &settings, input);
+  printf("Settings:\n");
+  printf("Error correction level: %d\n", settings.ecl);
+  printf("Encoding mode: %d\n", settings.em);
+  printf("Input source: %d\n", settings.is);
+  printf("Version: %d\n", settings.version);
   int i,c;
   if (settings.is == standardin) {
     for (i=0; i<MAX_INPUT_LEN; i++) {
